@@ -1,0 +1,14 @@
+[Unit]
+Description=SuperOl1n Backend
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/superol1n
+EnvironmentFile=/etc/superol1n/env
+WorkingDirectory=/var/lib/superol1n
+Restart=always
+RestartSec=5
+User=superol1n
+
+[Install]
+WantedBy=multi-user.target

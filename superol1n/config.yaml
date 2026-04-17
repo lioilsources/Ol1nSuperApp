@@ -1,0 +1,29 @@
+server:
+  port: 8090
+  lan_only_key: "CHANGE_ME"
+
+cloudflare:
+  access_team_domain: "ol1n.cloudflareaccess.com"
+
+ollama:
+  lan_url: "http://192.168.x.x:11434"
+  default_model: "qwen3:30b-a3b"
+
+sonarr:
+  url: "http://localhost:8989"
+  api_key: "SONARR_API_KEY"
+
+radarr:
+  url: "http://localhost:7878"
+  api_key: "RADARR_API_KEY"
+
+sabnzbd:
+  url: "http://localhost:8080"
+  api_key: "SABNZBD_API_KEY"
+
+plex:
+  url: "http://localhost:32400"
+  token: "PLEX_TOKEN"
+
+db:
+  path: "/var/lib/superol1n/superol1n.db"
