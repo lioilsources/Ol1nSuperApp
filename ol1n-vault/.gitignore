@@ -1,0 +1,5 @@
+/ol1n-vault
+/bin/
+*.db
+*.db-*
+.env

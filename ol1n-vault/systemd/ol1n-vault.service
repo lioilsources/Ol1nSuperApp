@@ -1,0 +1,18 @@
+[Unit]
+Description=Ol1n Vault Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ol1n
+EnvironmentFile=/etc/ol1n-vault/env
+ExecStart=/usr/local/bin/ol1n-vault
+Restart=on-failure
+RestartSec=5s
+WorkingDirectory=/data/vault
+
+MemoryMax=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
