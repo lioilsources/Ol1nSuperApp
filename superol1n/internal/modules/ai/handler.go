@@ -14,11 +14,11 @@ import (
 )
 
 type Handler struct {
-	client *OllamaClient
+	client *NIMClient
 	db     *sql.DB
 }
 
-func NewHandler(client *OllamaClient, db *sql.DB) *Handler {
+func NewHandler(client *NIMClient, db *sql.DB) *Handler {
 	return &Handler{client: client, db: db}
 }
 
@@ -55,7 +55,7 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 		Messages: req.Messages,
 	})
 	if err != nil {
-		slog.Error("ollama chat stream", "err", err)
+		slog.Error("nim chat stream", "err", err)
 		fmt.Fprintf(w, "data: {\"error\":%q}\n\n", err.Error())
 		flusher.Flush()
 		return
@@ -66,18 +66,34 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Fprintf(w, "data: %s\n\n", line)
-		flusher.Flush()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		payload := strings.TrimPrefix(line, "data: ")
+		if payload == "[DONE]" {
+			break
+		}
 
 		var chunk struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-			Done bool `json:"done"`
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
 		}
-		if err := json.Unmarshal([]byte(line), &chunk); err == nil {
-			fullResponse.WriteString(chunk.Message.Content)
+		if err := json.Unmarshal([]byte(payload), &chunk); err != nil || len(chunk.Choices) == 0 {
+			continue
 		}
+		content := chunk.Choices[0].Delta.Content
+		fullResponse.WriteString(content)
+
+		// Emit in Ollama-compatible format so Flutter client needs no changes.
+		out, _ := json.Marshal(map[string]any{
+			"message": map[string]string{"content": content},
+			"done":    false,
+		})
+		fmt.Fprintf(w, "data: %s\n\n", out)
+		flusher.Flush()
 	}
 
 	fmt.Fprintf(w, "data: [DONE]\n\n")

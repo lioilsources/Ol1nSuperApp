@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Server     ServerConfig     `mapstructure:"server"`
 	Cloudflare CloudflareConfig `mapstructure:"cloudflare"`
-	Ollama     OllamaConfig     `mapstructure:"ollama"`
+	NIM        NIMConfig        `mapstructure:"nim"`
 	Sonarr     ServiceConfig    `mapstructure:"sonarr"`
 	Radarr     ServiceConfig    `mapstructure:"radarr"`
 	SABnzbd    ServiceConfig    `mapstructure:"sabnzbd"`
@@ -26,9 +26,12 @@ type CloudflareConfig struct {
 	AccessTeamDomain string `mapstructure:"access_team_domain"`
 }
 
-type OllamaConfig struct {
-	LANURL       string `mapstructure:"lan_url"`
+type NIMConfig struct {
+	BaseURL      string `mapstructure:"base_url"`
+	APIKey       string `mapstructure:"api_key"`
 	DefaultModel string `mapstructure:"default_model"`
+	CFClientID   string `mapstructure:"cf_client_id"`
+	CFSecret     string `mapstructure:"cf_secret"`
 }
 
 type ServiceConfig struct {

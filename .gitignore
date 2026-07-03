@@ -1,0 +1,10 @@
+# Secrets
+superol1n/config.yaml
+ol1n-vault/config.yaml
+
+# Binaries
+superol1n/superol1n
+ol1n-vault/ol1n-vault
+
+# macOS
+.DS_Store

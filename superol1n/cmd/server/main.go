@@ -28,7 +28,7 @@ func main() {
 	}
 
 	modules := []module.Module{
-		aimod.New(cfg.Ollama.LANURL, database),
+		aimod.New(cfg.NIM.BaseURL, cfg.NIM.APIKey, cfg.NIM.CFClientID, cfg.NIM.CFSecret, database),
 		sonarr.New(cfg.Sonarr.URL, cfg.Sonarr.APIKey),
 		radarr.New(cfg.Radarr.URL, cfg.Radarr.APIKey),
 		sabnzbd.New(cfg.SABnzbd.URL, cfg.SABnzbd.APIKey),

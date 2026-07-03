@@ -9,13 +9,13 @@ import (
 
 type Module struct {
 	handler *Handler
-	client  *OllamaClient
+	client  *NIMClient
 }
 
 var _ module.Module = (*Module)(nil)
 
-func New(lanURL string, db *sql.DB) *Module {
-	client := NewOllamaClient(lanURL)
+func New(baseURL, apiKey, cfClientID, cfSecret string, db *sql.DB) *Module {
+	client := NewNIMClient(baseURL, apiKey, cfClientID, cfSecret)
 	return &Module{
 		client:  client,
 		handler: NewHandler(client, db),
