@@ -1,0 +1,51 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build & Release Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        working-directory: superol1n_app
+        run: flutter pub get
+
+      - name: Build Windows (debug)
+        working-directory: superol1n_app
+        run: flutter build windows --debug
+
+      - name: Package as ZIP
+        shell: pwsh
+        run: |
+          $src = "superol1n_app\build\windows\x64\runner\Debug"
+          $dest = "Ol1nSuperApp-${{ github.ref_name }}-Windows.zip"
+          Compress-Archive -Path "$src\*" -DestinationPath $dest
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Ol1nSuperApp-${{ github.ref_name }}-Windows.zip
+          name: Ol1nSuperApp ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: true

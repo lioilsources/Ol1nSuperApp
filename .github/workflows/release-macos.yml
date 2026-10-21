@@ -1,0 +1,46 @@
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build & Release macOS
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: superol1n_app
+        run: flutter pub get
+
+      - name: Build macOS (debug)
+        working-directory: superol1n_app
+        run: flutter build macos --debug
+
+      - name: Package as ZIP
+        run: |
+          cd "superol1n_app/build/macos/Build/Products/Debug"
+          zip -r "$OLDPWD/Ol1nSuperApp-${{ github.ref_name }}-macOS.zip" "superol1n_app.app"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Ol1nSuperApp-${{ github.ref_name }}-macOS.zip
+          name: Ol1nSuperApp ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: true
