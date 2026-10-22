@@ -1,0 +1,98 @@
+# From Distribution/workflows/release-android.yml (golden) via align-project.sh.
+# Local differences: a missing keystore secret fails the run, and Firebase App
+# Distribution runs only once FIREBASE_ANDROID_APP_ID is set.
+
+name: Release Android
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build & Release Android
+    runs-on: ubuntu-latest
+    env:
+      # Secrets can't be read in a step's `if`; a job env can.
+      FIREBASE_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: superol1n_app
+        run: flutter pub get
+
+      - name: Bump build number
+        working-directory: superol1n_app
+        run: |
+          BASE=$(grep '^version:' pubspec.yaml | sed -E 's/^version: ([0-9.]+).*/\1/')
+          NEW="${BASE}+${{ github.run_number }}"
+          sed -i -E "s/^version: .*/version: ${NEW}/" pubspec.yaml
+          echo "Build version: ${NEW}"
+
+      - name: Create keystore and key.properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "::error::ANDROID_KEYSTORE_BASE64 is not set — run Distribution/scripts/setup-gh-secrets.sh"; exit 1; }
+          echo -n "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode --ignore-garbage > superol1n_app/android/app/release.keystore
+          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.keystore\n" "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > superol1n_app/android/key.properties
+
+      - name: Build release AAB
+        working-directory: superol1n_app
+        run: flutter build appbundle --release
+
+      - name: Build release APK
+        working-directory: superol1n_app
+        run: flutter build apk --release
+
+      - name: Verify APK signing certificate
+        run: |
+          APK="superol1n_app/build/app/outputs/flutter-apk/app-release.apk"
+          echo "=== APK signing certificate ==="
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner verify --print-certs "$APK" | head -20
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            superol1n_app/build/app/outputs/bundle/release/app-release.aab
+            superol1n_app/build/app/outputs/flutter-apk/app-release.apk
+          name: Ol1nSuperApp ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: true
+
+      - name: Upload to Firebase App Distribution
+        if: env.FIREBASE_APP_ID != ''
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          groups: Alfa
+          releaseNotes: "Ol1nSuperApp ${{ github.ref_name }} (build ${{ github.run_number }})"
+          file: superol1n_app/build/app/outputs/flutter-apk/app-release.apk
